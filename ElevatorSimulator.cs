@@ -21,6 +21,14 @@ namespace EllevationElevator
         public int DestinationFloor { get; set; }
         public Direction CallDirection { get; set; }
         public int TimeOfCall { get; set; }
+
+        public ElevatorCall(int originFloor, int destinationFloor, Direction direction, int timeOfCall)
+        {
+            OriginFloor = originFloor;
+            DestinationFloor = destinationFloor;
+            CallDirection = direction;
+            TimeOfCall = timeOfCall;
+        }
     }
 
     public class ElevatorSimulator
@@ -57,21 +65,15 @@ namespace EllevationElevator
         }
 
         // Add an elevator call
-        public void AddElevatorCall(int originFloor, int destinationFloor, Direction direction, int timeOfCall)
+        public void AddElevatorCall(ElevatorCall call)
         {
-            pendingCalls.Add(new ElevatorCall()
-            {
-                OriginFloor = originFloor,
-                DestinationFloor = destinationFloor,
-                CallDirection = direction,
-                TimeOfCall = timeOfCall
-            });
+            pendingCalls.Add(call);
         }
 
         // Simulate elevator movement
         public void Simulate()
         {
-            while ((pendingCalls.Any() || waitingPassengers.Any() || elevator.DestinationFloors.Any()) && currentTime < 11)
+            while (pendingCalls.Any() || waitingPassengers.Any() || elevator.DestinationFloors.Any())
             {
                 // Process calls at current time
                 ProcessElevatorCalls();
@@ -99,7 +101,7 @@ namespace EllevationElevator
 
             foreach (var call in currentTimeCalls)
             {
-                // Create waiting passenger
+                // Create waiting passenger for calls made
                 var passenger = new Passenger
                 {
                     OriginFloor = call.OriginFloor,
@@ -123,11 +125,10 @@ namespace EllevationElevator
                 elevator.CurrentDirection = Direction.Idle;
                 return;
             }
-
-            // Determine movement direction
+            
             if (elevator.CurrentDirection == Direction.Idle)
             {
-                // If idle, choose direction based on first destination
+                // Choose direction based on first destination
                 elevator.CurrentDirection = elevator.DestinationFloors.First() > elevator.CurrentFloor 
                     ? Direction.Up 
                     : Direction.Down;
@@ -142,70 +143,10 @@ namespace EllevationElevator
             {
                 elevator.CurrentFloor--;
             }
-            else if (elevator.CurrentFloor == InitialFloor || elevator.CurrentFloor == TotalFloors)
-            {
-                // In the case that we have reached the bottom floor or the top, idle the elevator
-                elevator.CurrentDirection = Direction.Idle;
-            }
-
-            // Adjust direction if no more destinations in current direction
-            if (!elevator.DestinationFloors.Any())
-            {
-                elevator.CurrentDirection = Direction.Idle;
-            }
-            else
-            {
-                // Determine if we need to change direction
-                bool hasUpcomingDestination = elevator.CurrentDirection == Direction.Up 
-                    ? elevator.DestinationFloors.Any(f => f > elevator.CurrentFloor)
-                    : elevator.DestinationFloors.Any(f => f < elevator.CurrentFloor);
-
-                if (!hasUpcomingDestination)
-                {
-                    // Reverse direction
-                    elevator.CurrentDirection = elevator.CurrentDirection == Direction.Up 
-                        ? Direction.Down 
-                        : Direction.Up;
-                }
-            }
         }
 
         private void HandlePassengers()
         {
-            // Find waiting passengers at current floor
-            var boardingPassengers = waitingPassengers
-                .Where(p => p.OriginFloor == elevator.CurrentFloor)
-                .ToList();
-
-            foreach (var passenger in boardingPassengers)
-            {
-                // Check if elevator is going in passenger's desired direction
-                bool canBoard = elevator.CurrentDirection == passenger.InitialDirection ||
-                                elevator.CurrentDirection == Direction.Idle;
-
-                // Elevator will only stop to pick up passenger if its traveling in the correct direction.
-                bool goingRightWay = (elevator.CurrentDirection == Direction.Up && passenger.DestinationFloor > elevator.CurrentFloor) ||
-                                    (elevator.CurrentDirection == Direction.Down && passenger.DestinationFloor < elevator.CurrentFloor);
-
-                if (canBoard && goingRightWay)
-                {
-                    // Passenger boards the elevator
-                    elevator.Passengers.Add(passenger);
-                    waitingPassengers.Remove(passenger);
-
-                    // Add destination floor
-                    elevator.DestinationFloors.Add(passenger.DestinationFloor);
-
-                    // Update elevator direction if idle
-                    if (elevator.CurrentDirection == Direction.Idle)
-                    {
-                        elevator.CurrentDirection = passenger.DestinationFloor > elevator.CurrentFloor
-                            ? Direction.Up
-                            : Direction.Down;
-                    }
-                }
-            }
-
             // Find passengers who want to get off on this current floor
             var departingPassengers = elevator.Passengers
                 .Where(p => p.DestinationFloor == elevator.CurrentFloor)
@@ -216,6 +157,50 @@ namespace EllevationElevator
                 // Need to have passenger leave elevator and remove the destination tracking for them.
                 elevator.Passengers.Remove(passenger);
                 elevator.DestinationFloors.Remove(elevator.CurrentFloor);
+                Console.WriteLine($"Passenger got off at time: {currentTime} " + $"and on floor: {elevator.CurrentFloor}, ");
+                if (!elevator.Passengers.Any())
+                {
+                    // if nobody left on elevator, send to Idle state
+                    elevator.CurrentDirection = Direction.Idle;
+                }
+            }
+
+            // Find waiting passengers at current floor
+            var boardingPassengers = waitingPassengers
+                .Where(p => p.OriginFloor == elevator.CurrentFloor)
+                .ToList();
+
+            foreach (var passenger in boardingPassengers)
+            {
+                if (elevator.Passengers.Any())
+                {
+                    if (elevator.CurrentDirection == passenger.InitialDirection)
+                    {
+                        // If there are other passengesr on the elevator and it is going in the right direction
+                        // for the new passenger, they will board the elevator
+                        elevator.Passengers.Add(passenger);
+                        waitingPassengers.Remove(passenger);
+                        // Add destination floor
+                        elevator.DestinationFloors.Add(passenger.DestinationFloor);
+                        elevator.DestinationFloors.Remove(passenger.OriginFloor);
+                    }
+                    else
+                    {
+                        // otherwise they will have to wait until the elevator request is at the right point in the queue
+                    }
+                }
+                else
+                {
+                    // if the elevator is empty, board the passenger and change the elevator direction
+                    elevator.Passengers.Add(passenger);
+                    waitingPassengers.Remove(passenger);
+                    // Add destination floor
+                    elevator.DestinationFloors.Add(passenger.DestinationFloor);
+                    elevator.DestinationFloors.Remove(passenger.OriginFloor);
+                    elevator.CurrentDirection = passenger.InitialDirection;
+                    Console.WriteLine($"Passenger got on at time: {currentTime} " + $"and on floor: {elevator.CurrentFloor}, ");
+                }
+
             }
         }
 
