@@ -15,16 +15,16 @@
             elevatorSystem.AddElevatorCall(new ElevatorCall(10, 1, Direction.Down, 1));
 
             // Generate and add 10 random requests
-            var randomRequests = RandomRequestGenerator.GenerateRandomElevatorRequests(10);
+            /*var randomRequests = RandomRequestGenerator.GenerateRandomElevatorRequests(10);
 
             foreach (var request in randomRequests)
             {
-                /*Console.WriteLine($"At time {request.TimeOfCall}, a user on floor {request.OriginFloor} " +
+                Console.WriteLine($"At time {request.TimeOfCall}, a user on floor {request.OriginFloor} " +
                                 $"presses the \"{request.CallDirection}\" request button. " +
-                                $"Their destination is floor {request.DestinationFloor}.");*/
+                                $"Their destination is floor {request.DestinationFloor}.");
 
                 elevatorSystem.AddElevatorCall(request);
-            }
+            }*/
 
             // Run the simulation
             elevatorSystem.Simulate();
