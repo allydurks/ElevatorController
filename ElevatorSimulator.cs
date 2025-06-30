@@ -84,10 +84,11 @@ namespace EllevationElevator
                 // Handle passenger getting on/off the elevator
                 HandlePassengers();
 
+                currentTime++;
+
                 // Output current state
                 OutputElevatorState();
 
-                currentTime++;
             }
         }
 
@@ -157,7 +158,7 @@ namespace EllevationElevator
                 // Need to have passenger leave elevator and remove the destination tracking for them.
                 elevator.Passengers.Remove(passenger);
                 elevator.DestinationFloors.Remove(elevator.CurrentFloor);
-                // Console.WriteLine($"Passenger got off at time: {currentTime} " + $"and on floor: {elevator.CurrentFloor}, ");
+                Console.WriteLine($"Passenger got off at time: {currentTime} " + $"and on floor: {elevator.CurrentFloor}, ");
                 if (!elevator.Passengers.Any())
                 {
                     // if nobody left on elevator, send to Idle state
@@ -180,6 +181,7 @@ namespace EllevationElevator
                         // for the new passenger, they will board the elevator
                         elevator.Passengers.Add(passenger);
                         waitingPassengers.Remove(passenger);
+                        Console.WriteLine($"Passenger got on at time: {currentTime} " + $"and on floor: {elevator.CurrentFloor}, ");
                         // Add destination floor
                         elevator.DestinationFloors.Add(passenger.DestinationFloor);
                         elevator.DestinationFloors.Remove(passenger.OriginFloor);
@@ -187,6 +189,7 @@ namespace EllevationElevator
                     else
                     {
                         // otherwise they will have to wait until the elevator request is at the right point in the queue
+                        elevator.DestinationFloors.Add(passenger.OriginFloor);
                     }
                 }
                 else
@@ -198,7 +201,7 @@ namespace EllevationElevator
                     elevator.DestinationFloors.Add(passenger.DestinationFloor);
                     elevator.DestinationFloors.Remove(passenger.OriginFloor);
                     elevator.CurrentDirection = passenger.InitialDirection;
-                    // Console.WriteLine($"Passenger got on at time: {currentTime} " + $"and on floor: {elevator.CurrentFloor}, ");
+                    Console.WriteLine($"Passenger got on at time: {currentTime} " + $"and on floor: {elevator.CurrentFloor}, ");
                 }
 
             }
